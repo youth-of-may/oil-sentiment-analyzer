@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 import pandas as pd
+import json
+import time
 
 
 """
@@ -20,44 +22,82 @@ client = OpenAI(
 )
 
 
-def analyze_sentiment(news_title: str, news_description: str) -> int:
+def analyze_sentiment(news_titles: list, news_descriptions: list):
 
     try:
+        time.sleep(2)
+        numbered = "\n".join([f"{i+1}. Title: {t} | Description: {d}" 
+                      for i, (t, d) in enumerate(zip(news_titles, news_descriptions))])
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content":"You are a news sentiment analyst. Rate the sentiment from -1 (extremely negative) to 1 (extremely positive)."},
-                {"role": "user", "content": f""" 
-                 You are analyzing the sentiment of a news article related to the Iran–Israel conflict and its impact on global oil prices.
-                Article:
-                Title: {news_title}
-                Description: {news_description}
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are a news sentiment analyst. Output ONLY valid JSON."
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+            You are analyzing multiple news articles related to the Iran–Israel conflict and its impact on global oil prices.
 
-                Instructions:
-                - Focus on tone, word choice, and implied severity (e.g., escalation, disruption, recovery, stability).
-                - Consider both the title and description together.
-                - Evaluate sentiment specifically in terms of impact on global oil prices.
+            Each article is a pair of (Title, Description).
 
-                Scoring:
-                - Return a single number between -1 and 1:
-                - -1 = Extremely negative impact (e.g., severe disruption, crisis, price shocks)
-                -  0 = Neutral or unclear impact
-                - +1 = Extremely positive impact (e.g., stability, recovery, easing prices)
+            Articles:
+            {numbered}
 
-                Output format:
-                Return ONLY the number (e.g., -0.75, 0, 0.6)
+            Return exactly {len(news_titles)} scores, one per numbered article.
 
-                Do not include any explanation or additional text."""
+            Instructions:
+            - Treat each (Title, Description) pair as a separate article.
+            - Evaluate sentiment based on impact on global oil prices.
+            - Focus on tone, severity, and implications (e.g., escalation, disruption, recovery, stability).
+
+            Scoring:
+            - Return a number between -1 and 1:
+            - -1 = Extremely negative impact
+            -  0 = Neutral or unclear
+            - +1 = Extremely positive impact
+
+            Output format:
+            - Return a JSON array of numbers
+            - The number of scores MUST match the number of articles
+            - Preserve order
+
+            Example output: [-0.75, 0.1, 0.6]
+
+
+            Do NOT include any explanation or extra text.
+
+            CRITICAL: Return ONLY a raw JSON array. No keys, no objects, no markdown, no explanation.
+            Correct: [-0.75, 0.1, 0.6]
+            Wrong: {{"scores": [-0.75, 0.1, 0.6]}}
+            Wrong: Here are the scores: [-0.75, 0.1, 0.6]
+            """
                 }
             ]
         )
-        return response.choices[0].message.content
+        #print(str(counter) + " " + response.choices[0].message.content)
+        raw = response.choices[0].message.content
+        raw = raw.replace('NA', '0').replace('null', '0')
+        scores = json.loads(raw)
+        counter+=1
+        if (len(news_titles) == len(scores)):
+            return scores
+        else:
+            print(f"Length mismatch: expected {len(news_titles)}, got {len(scores)}")
+            return [0.0] * len(news_titles) 
     
     except RateLimitError:
-        return f" Explanation unavailable -- API rate limit reached."
+        return [0.0] * len(news_titles)
+
 
 def sentiment_loop(df: pd.DataFrame):
-    df['sentiment_score'] = df.apply(lambda row: analyze_sentiment(row['title'], row['description']), axis=1)
+    sentiment_scores = []
+    batch_size=15
+    for i in range(0, len(df), batch_size):
+        batch = df.iloc[i:i+batch_size]
+        sentiment_scores+= analyze_sentiment(batch['title'].tolist(), batch['description'].tolist())
+    df['sentiment_score'] = sentiment_scores
     return df
 
 def save_processed(df: pd.DataFrame, filename: str):
