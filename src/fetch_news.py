@@ -18,15 +18,23 @@ def load_news():
                                       language='en',
                                       sort_by='publishedAt',
                                       )
-    df = pd.DataFrame(crude_oil['articles'])
+    df = pd.json_normalize(crude_oil['articles'])
     return df 
+
+def clean(df: pd.DataFrame):
+    df['title'] = df['title'].astype(str).str.replace("\"", "", regex=False)
+    df['description'] = df['description'].astype(str).str.replace("\"", "", regex=False)
+    return df
 
 def save_data(df: pd.DataFrame, filename: str):
     RAW_DIR.mkdir(parents=True, exist_ok=True)
-    df = df[['title', 'description']]
+    df['source'] = df['source.name']    
+    df = df[['publishedAt', 'title', 'description',  'source']]
     df.to_csv(RAW_DIR / filename, index=False)
 
 
 if __name__== "__main__":
     df = load_news()
+    df = clean(df)
     save_data(df, "news_data.csv")
+    
