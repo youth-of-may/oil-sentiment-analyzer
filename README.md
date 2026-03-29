@@ -8,23 +8,26 @@ Analyzes whether geopolitical news sentiment (Iran-Israel conflict) correlates w
 - **Groq (LLaMA 3.1)** — sentiment scoring per article
 - **pandas** — data cleaning, aggregation, merging
 - **scipy** — Pearson and Spearman correlation, lag analysis
-- **Streamlit** — dashboard (in progress)
+- **Streamlit + Plotly** — interactive analytics dashboard
 
 ## Project Structure
 ```
 oil-sentiment-analyzer/
 ├── data/
-|   └── correlation        # basic, lag, and rolling correlation outputs
 │   ├── raw/               # fetched articles and price CSVs
-│   └── processed/         # merged and aggregated outputs
+│   ├── processed/         # merged and aggregated outputs
+│   └── correlation/       # basic, lag, and rolling correlation outputs
 ├── src/
 │   ├── fetch_news.py      # NewsAPI retrieval
-│   ├── sentiment.py # Groq LLM scoring
+│   ├── sentiment.py       # Groq LLM scoring
 │   ├── fetch_prices.py    # yfinance price pull
-│   ├── aggregate.py       # dataframe merging and daily sentiment aggregation 
+│   ├── aggregate.py       # dataframe merging and daily sentiment aggregation
 │   └── correlate.py       # Pearson, Spearman, lag, rolling
 ├── app/
-│   └── dashboard.py       # Streamlit dashboard (coming soon)
+│   ├── dashboard.py       # overview dashboard
+│   └── pages/
+│       ├── 1_Correlation_Analysis.py  # correlation, lag, and rolling charts
+│       └── 2_News_Browser.py          # articles by date with sentiment scores
 ├── requirements.txt
 └── README.md
 ```
@@ -44,7 +47,7 @@ oil-sentiment-analyzer/
 - **Brent more responsive to Iran-Israel sentiment than WTI overall**, consistent with Brent's role as the Middle East-linked global benchmark
 
 ## Data Sources
-- **NewsAPI** — headlines queried for Iran-Israel conflict coverage, ~28 days of articles (March 2026)
+- **NewsAPI** — headlines queried for Iran-Israel conflict coverage, ~28 days of articles (Feb 28 – Mar 27, 2025)
 - **yfinance** — daily closing prices for Brent Crude (`BZ=F`) and WTI Crude (`CL=F`) for the same date range; weekends forward-filled to align with news data
 
 ## Setup
@@ -63,10 +66,15 @@ GROQ_API_KEY=your_key_here
 Then run the pipeline in order:
 ```bash
 python src/fetch_news.py
-python src/score_sentiment.py
+python src/sentiment.py
 python src/fetch_prices.py
 python src/aggregate.py
 python src/correlate.py
+```
+
+Then launch the dashboard:
+```bash
+streamlit run app/dashboard.py
 ```
 
 ## Limitations
@@ -75,5 +83,9 @@ python src/correlate.py
 - Weekend oil prices are forward-filled from the previous Friday, which may dampen weekend sentiment signal
 - Sentiment is averaged per day across all articles regardless of source weight or recency within the day
 
-## Dashboard
-Coming soon — Streamlit dashboard for interactive correlation exploration and rolling window visualization.
+## Pending
+**Sentiment prediction model** — the next step is to train a supervised model that can predict a sentiment score for a given news article without calling the Groq API. The Groq-annotated scores will serve as training labels. Planned approach:
+
+- Use the existing Groq-scored articles as the labeled dataset
+- Fine-tune or train a lightweight text regression/classification model (e.g. a pre-trained transformer or TF-IDF + regression baseline) on the annotated data
+- Expose predictions via a new dashboard page where a user can paste a headline and receive a predicted sentiment score
