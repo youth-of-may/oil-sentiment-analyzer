@@ -27,6 +27,7 @@ def returnTopNNews(top_n):
     news = pd.read_csv(PROCESSED_DIR / "top_negativesentiment_news.csv")
     return news.iloc[0:top_n]
 
+
 def newsPerDate(date):
     news = pd.read_csv(PROCESSED_DIR / "top_negativesentiment_news.csv")
     news['publishedAt'] = pd.to_datetime(news['publishedAt'])
