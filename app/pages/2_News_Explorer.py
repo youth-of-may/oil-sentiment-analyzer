@@ -233,7 +233,7 @@ BASE = dict(
 )
 
 # ── Metrics row ───────────────────────────────────────────────────────────────
-st.write("Daily news coverage scored by sentiment · select a date to explore")
+#st.write("Daily news coverage scored by sentiment · select a date to explore")
 
 st.divider()
 
