@@ -204,57 +204,10 @@ BASE = dict(
 # ── Metrics row ───────────────────────────────────────────────────────────────
 col1, col2, col3 = st.columns(3)
 col1.metric("Date Range", "Feb 28 – Mar 27")
-col2.metric("Total Articles Analyzed", count_articles())
+col2.metric("Total Articles", count_articles())
 col3.metric("Avg Daily Sentiment", average_sentiment())
 
 st.divider()
-
-# ── Top Articles with Negative Sentiment Scores ──────────────────────────────
-col_head, col_select = st.columns([3, 1])
-
-with col_head:
-    st.subheader("Top Articles with the Lowest Sentiment Scores")
-
-
-with col_select:
-    top_n = st.selectbox(
-        "Show top",
-        options=[5, 10, 15, 20],
-        index=0,
-        label_visibility="collapsed",
-    )
-
-top_news = returnTopNNews(top_n)
-columns = ["Title", "Description", "Date", "Sentiment Score"]
-
-fig = go.Figure(data=[go.Table(
-    columnwidth=[90, 420, 90],
-    header=dict(
-        values=[f"<b>{c}</b>" for c in columns],
-        align="left",
-        fill_color="#1a1e2a",
-        font=dict(family="DM Mono, monospace", size=11, color="#6b7280"),
-        line_color="#242836",
-        height=36,
-    ),
-    cells=dict(
-        values=[top_news.title, top_news.description, top_news.publishedAt, top_news.sentiment_score],
-        align="left",
-        fill_color=["#13161e", "#13161e", "#13161e"],
-        font=dict(family="DM Mono, monospace", size=11, color="#e8eaf0"),
-        line_color="#242836",
-        height=32,
-    )
-)])
-fig.update_layout(
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    margin=dict(l=0, r=0, t=0, b=0),
-)
-st.plotly_chart(fig, use_container_width=True)
-st.divider()
-
-
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 brent = brent_sentimentPrice()   # columns: date, sentiment_score, brent_close
@@ -334,3 +287,48 @@ fig_wti.update_yaxes(title_text="WTI close (USD)", secondary_y=True,
 
 st.plotly_chart(fig_wti, use_container_width=True)
 
+st.divider()
+
+# ── Top Articles with Negative Sentiment Scores ──────────────────────────────
+col_head, col_select = st.columns([3, 1])
+
+with col_head:
+    st.subheader("Top Articles with the Lowest Sentiment Scores")
+
+
+with col_select:
+    top_n = st.selectbox(
+        "Show top",
+        options=[5, 10, 15, 20],
+        index=0,
+        label_visibility="collapsed",
+    )
+
+top_news = returnTopNNews(top_n)
+columns = ["Title", "Description", "Date", "Sentiment Score"]
+
+fig = go.Figure(data=[go.Table(
+    columnwidth=[90, 420, 90],
+    header=dict(
+        values=[f"<b>{c}</b>" for c in columns],
+        align="left",
+        fill_color="#1a1e2a",
+        font=dict(family="DM Mono, monospace", size=11, color="#6b7280"),
+        line_color="#242836",
+        height=36,
+    ),
+    cells=dict(
+        values=[top_news.title, top_news.description, top_news.publishedAt, top_news.sentiment_score],
+        align="left",
+        fill_color=["#13161e", "#13161e", "#13161e"],
+        font=dict(family="DM Mono, monospace", size=11, color="#e8eaf0"),
+        line_color="#242836",
+        height=32,
+    )
+)])
+fig.update_layout(
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=0, r=0, t=0, b=0),
+)
+st.plotly_chart(fig, use_container_width=True)
